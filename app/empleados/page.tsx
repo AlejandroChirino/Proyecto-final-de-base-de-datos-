@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -19,173 +18,162 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Filter, Mail, Phone, User, Edit, Trash2, MapPin } from "lucide-react"
-
-interface Empleado {
-  id: string
-  nombre: string
-  email: string
-  telefono: string
-  rol: "Gestor" | "Repartidor" | "Administrador" | "Vendedor"
-  departamento: string
-  zonaCobertura?: string
-  jerarquia: string
-  estado: "Activo" | "Inactivo" | "Vacaciones"
-  fechaIngreso: string
-}
+import { Plus, Search, Filter, User, Edit, Trash2, MapPin, Car } from "lucide-react"
+import type { Empleado, Gestores, Repartidores, Zonas_Cobertura_Repartidores, EmpleadoCompleto } from "@/types/database"
+import {
+  empleados as empleadosIniciales,
+  gestores as gestoresIniciales,
+  repartidores as repartidoresIniciales,
+  zonas_cobertura_repartidores as zonasIniciales,
+} from "@/data/mockData"
 
 export default function EmpleadosPage() {
-  const [empleados, setEmpleados] = useState<Empleado[]>([
-    {
-      id: "1",
-      nombre: "Carlos Rodríguez",
-      email: "carlos.rodriguez@mercadovirtual.com",
-      telefono: "+1 234 567 8901",
-      rol: "Administrador",
-      departamento: "Administración",
-      jerarquia: "Director General",
-      estado: "Activo",
-      fechaIngreso: "2022-01-15",
-    },
-    {
-      id: "2",
-      nombre: "Laura Martínez",
-      email: "laura.martinez@mercadovirtual.com",
-      telefono: "+1 234 567 8902",
-      rol: "Gestor",
-      departamento: "Ventas",
-      jerarquia: "Supervisor de Ventas",
-      estado: "Activo",
-      fechaIngreso: "2022-03-20",
-    },
-    {
-      id: "3",
-      nombre: "Miguel Torres",
-      email: "miguel.torres@mercadovirtual.com",
-      telefono: "+1 234 567 8903",
-      rol: "Repartidor",
-      departamento: "Logística",
-      zonaCobertura: "Zona Norte",
-      jerarquia: "Repartidor Senior",
-      estado: "Vacaciones",
-      fechaIngreso: "2022-06-10",
-    },
-    {
-      id: "4",
-      nombre: "Ana Fernández",
-      email: "ana.fernandez@mercadovirtual.com",
-      telefono: "+1 234 567 8904",
-      rol: "Repartidor",
-      departamento: "Logística",
-      zonaCobertura: "Zona Sur",
-      jerarquia: "Repartidor",
-      estado: "Activo",
-      fechaIngreso: "2023-02-14",
-    },
-    {
-      id: "5",
-      nombre: "Roberto Silva",
-      email: "roberto.silva@mercadovirtual.com",
-      telefono: "+1 234 567 8905",
-      rol: "Vendedor",
-      departamento: "Ventas",
-      jerarquia: "Vendedor Senior",
-      estado: "Activo",
-      fechaIngreso: "2023-05-08",
-    },
-  ])
+  const [empleados, setEmpleados] = useState<Empleado[]>(empleadosIniciales)
+  const [gestores, setGestores] = useState<Gestores[]>(gestoresIniciales)
+  const [repartidores, setRepartidores] = useState<Repartidores[]>(repartidoresIniciales)
+  const [zonasCobertura, setZonasCobertura] = useState<Zonas_Cobertura_Repartidores[]>(zonasIniciales)
 
   const [searchTerm, setSearchTerm] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editingEmpleado, setEditingEmpleado] = useState<Empleado | null>(null)
+  const [editingEmpleado, setEditingEmpleado] = useState<EmpleadoCompleto | null>(null)
   const [formData, setFormData] = useState({
-    nombre: "",
-    email: "",
-    telefono: "",
-    rol: "",
-    departamento: "",
-    zonaCobertura: "",
-    jerarquia: "",
+    carnet_empleado: "",
+    nombre_emp: "",
+    tipo_empleado: "",
+    jerarquía: "",
+    area_gestion: "",
+    tipo_vehiculo: "",
+    zonas_cobertura: "",
   })
 
-  const filteredEmpleados = empleados.filter(
+  // Combinar datos para vista completa
+  const empleadosCompletos: EmpleadoCompleto[] = empleados.map((emp) => {
+    const gestor = gestores.find((g) => g.Empleado_carnet_empleado === emp.carnet_empleado)
+    const repartidor = repartidores.find((r) => r.Empleado_carnet_empleado === emp.carnet_empleado)
+    const zonas = zonasCobertura.filter((z) => z.Empleado_carnet_empleado === emp.carnet_empleado)
+
+    return {
+      ...emp,
+      gestor,
+      repartidor,
+      zonas_cobertura: zonas,
+    }
+  })
+
+  const filteredEmpleados = empleadosCompletos.filter(
     (empleado) =>
-      empleado.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      empleado.rol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      empleado.departamento.toLowerCase().includes(searchTerm.toLowerCase()),
+      empleado.nombre_emp.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      empleado.carnet_empleado.toString().includes(searchTerm),
   )
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-
-    const nuevoEmpleado: Empleado = {
-      id: editingEmpleado?.id || Date.now().toString(),
-      nombre: formData.nombre,
-      email: formData.email,
-      telefono: formData.telefono,
-      rol: formData.rol as Empleado["rol"],
-      departamento: formData.departamento,
-      zonaCobertura: formData.zonaCobertura || undefined,
-      jerarquia: formData.jerarquia,
-      estado: "Activo",
-      fechaIngreso: editingEmpleado?.fechaIngreso || new Date().toISOString().split("T")[0],
-    }
-
-    if (editingEmpleado) {
-      setEmpleados(empleados.map((e) => (e.id === editingEmpleado.id ? nuevoEmpleado : e)))
-    } else {
-      setEmpleados([...empleados, nuevoEmpleado])
-    }
-
-    setFormData({ nombre: "", email: "", telefono: "", rol: "", departamento: "", zonaCobertura: "", jerarquia: "" })
-    setEditingEmpleado(null)
-    setIsDialogOpen(false)
+  const getTipoEmpleado = (empleado: EmpleadoCompleto): string => {
+    if (empleado.gestor) return "Gestor"
+    if (empleado.repartidor) return "Repartidor"
+    return "Empleado"
   }
 
-  const handleEdit = (empleado: Empleado) => {
-    setEditingEmpleado(empleado)
-    setFormData({
-      nombre: empleado.nombre,
-      email: empleado.email,
-      telefono: empleado.telefono,
-      rol: empleado.rol,
-      departamento: empleado.departamento,
-      zonaCobertura: empleado.zonaCobertura || "",
-      jerarquia: empleado.jerarquia,
-    })
-    setIsDialogOpen(true)
-  }
-
-  const handleDelete = (id: string) => {
-    setEmpleados(empleados.filter((e) => e.id !== id))
-  }
-
-  const getRolColor = (rol: string) => {
-    switch (rol) {
-      case "Administrador":
-        return "bg-blue-600"
+  const getRolColor = (tipo: string) => {
+    switch (tipo) {
       case "Gestor":
-        return "bg-green-600"
+        return "bg-blue-600"
       case "Repartidor":
         return "bg-orange-600"
-      case "Vendedor":
-        return "bg-purple-600"
       default:
         return "bg-gray-600"
     }
   }
 
-  const getEstadoBadgeVariant = (estado: string) => {
-    switch (estado) {
-      case "Activo":
-        return "default"
-      case "Vacaciones":
-        return "secondary"
-      case "Inactivo":
-        return "destructive"
-      default:
-        return "default"
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+
+    const nuevoEmpleado: Empleado = {
+      carnet_empleado: editingEmpleado?.carnet_empleado || Number.parseInt(formData.carnet_empleado),
+      nombre_emp: formData.nombre_emp,
     }
+
+    if (editingEmpleado) {
+      setEmpleados(empleados.map((e) => (e.carnet_empleado === editingEmpleado.carnet_empleado ? nuevoEmpleado : e)))
+    } else {
+      setEmpleados([...empleados, nuevoEmpleado])
+    }
+
+    // Manejar datos específicos según tipo de empleado
+    const carnet = nuevoEmpleado.carnet_empleado
+
+    if (formData.tipo_empleado === "Gestor") {
+      const nuevoGestor: Gestores = {
+        Empleado_carnet_empleado: carnet,
+        jerarquía: formData.jerarquía,
+        area_gestion: formData.area_gestion,
+      }
+
+      if (editingEmpleado?.gestor) {
+        setGestores(gestores.map((g) => (g.Empleado_carnet_empleado === carnet ? nuevoGestor : g)))
+      } else {
+        setGestores([...gestores, nuevoGestor])
+      }
+
+      // Remover de repartidores si existía
+      setRepartidores(repartidores.filter((r) => r.Empleado_carnet_empleado !== carnet))
+      setZonasCobertura(zonasCobertura.filter((z) => z.Empleado_carnet_empleado !== carnet))
+    } else if (formData.tipo_empleado === "Repartidor") {
+      const nuevoRepartidor: Repartidores = {
+        Empleado_carnet_empleado: carnet,
+        tipo_vehiculo: formData.tipo_vehiculo,
+      }
+
+      if (editingEmpleado?.repartidor) {
+        setRepartidores(repartidores.map((r) => (r.Empleado_carnet_empleado === carnet ? nuevoRepartidor : r)))
+      } else {
+        setRepartidores([...repartidores, nuevoRepartidor])
+      }
+
+      // Manejar zonas de cobertura
+      if (formData.zonas_cobertura) {
+        const nuevaZona: Zonas_Cobertura_Repartidores = {
+          Empleado_carnet_empleado: carnet,
+          zonas_cobertura: formData.zonas_cobertura,
+        }
+
+        setZonasCobertura([...zonasCobertura.filter((z) => z.Empleado_carnet_empleado !== carnet), nuevaZona])
+      }
+
+      // Remover de gestores si existía
+      setGestores(gestores.filter((g) => g.Empleado_carnet_empleado !== carnet))
+    }
+
+    setFormData({
+      carnet_empleado: "",
+      nombre_emp: "",
+      tipo_empleado: "",
+      jerarquía: "",
+      area_gestion: "",
+      tipo_vehiculo: "",
+      zonas_cobertura: "",
+    })
+    setEditingEmpleado(null)
+    setIsDialogOpen(false)
+  }
+
+  const handleEdit = (empleado: EmpleadoCompleto) => {
+    setEditingEmpleado(empleado)
+    setFormData({
+      carnet_empleado: empleado.carnet_empleado.toString(),
+      nombre_emp: empleado.nombre_emp,
+      tipo_empleado: getTipoEmpleado(empleado),
+      jerarquía: empleado.gestor?.jerarquía || "",
+      area_gestion: empleado.gestor?.area_gestion || "",
+      tipo_vehiculo: empleado.repartidor?.tipo_vehiculo || "",
+      zonas_cobertura: empleado.zonas_cobertura?.[0]?.zonas_cobertura || "",
+    })
+    setIsDialogOpen(true)
+  }
+
+  const handleDelete = (carnet_empleado: number) => {
+    setEmpleados(empleados.filter((e) => e.carnet_empleado !== carnet_empleado))
+    setGestores(gestores.filter((g) => g.Empleado_carnet_empleado !== carnet_empleado))
+    setRepartidores(repartidores.filter((r) => r.Empleado_carnet_empleado !== carnet_empleado))
+    setZonasCobertura(zonasCobertura.filter((z) => z.Empleado_carnet_empleado !== carnet_empleado))
   }
 
   return (
@@ -201,13 +189,13 @@ export default function EmpleadosPage() {
               onClick={() => {
                 setEditingEmpleado(null)
                 setFormData({
-                  nombre: "",
-                  email: "",
-                  telefono: "",
-                  rol: "",
-                  departamento: "",
-                  zonaCobertura: "",
-                  jerarquia: "",
+                  carnet_empleado: "",
+                  nombre_emp: "",
+                  tipo_empleado: "",
+                  jerarquía: "",
+                  area_gestion: "",
+                  tipo_vehiculo: "",
+                  zonas_cobertura: "",
                 })
               }}
             >
@@ -215,7 +203,7 @@ export default function EmpleadosPage() {
               Agregar Empleado
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>{editingEmpleado ? "Editar Empleado" : "Agregar Nuevo Empleado"}</DialogTitle>
               <DialogDescription>
@@ -227,112 +215,130 @@ export default function EmpleadosPage() {
             <form onSubmit={handleSubmit}>
               <div className="grid gap-4 py-4 max-h-96 overflow-y-auto">
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="nombre" className="text-right">
+                  <Label htmlFor="carnet_empleado" className="text-right">
+                    Carnet
+                  </Label>
+                  <Input
+                    id="carnet_empleado"
+                    type="number"
+                    value={formData.carnet_empleado}
+                    onChange={(e) => setFormData({ ...formData, carnet_empleado: e.target.value })}
+                    className="col-span-3"
+                    disabled={!!editingEmpleado}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="nombre_emp" className="text-right">
                     Nombre
                   </Label>
                   <Input
-                    id="nombre"
-                    value={formData.nombre}
-                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                    id="nombre_emp"
+                    value={formData.nombre_emp}
+                    onChange={(e) => setFormData({ ...formData, nombre_emp: e.target.value })}
                     className="col-span-3"
                     required
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="email" className="text-right">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="col-span-3"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="telefono" className="text-right">
-                    Teléfono
-                  </Label>
-                  <Input
-                    id="telefono"
-                    value={formData.telefono}
-                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                    className="col-span-3"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="rol" className="text-right">
-                    Rol
-                  </Label>
-                  <Select value={formData.rol} onValueChange={(value) => setFormData({ ...formData, rol: value })}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Seleccionar rol" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Administrador">Administrador</SelectItem>
-                      <SelectItem value="Gestor">Gestor</SelectItem>
-                      <SelectItem value="Repartidor">Repartidor</SelectItem>
-                      <SelectItem value="Vendedor">Vendedor</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="departamento" className="text-right">
-                    Departamento
+                  <Label htmlFor="tipo_empleado" className="text-right">
+                    Tipo
                   </Label>
                   <Select
-                    value={formData.departamento}
-                    onValueChange={(value) => setFormData({ ...formData, departamento: value })}
+                    value={formData.tipo_empleado}
+                    onValueChange={(value) => setFormData({ ...formData, tipo_empleado: value })}
                   >
                     <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Seleccionar departamento" />
+                      <SelectValue placeholder="Seleccionar tipo" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Administración">Administración</SelectItem>
-                      <SelectItem value="Ventas">Ventas</SelectItem>
-                      <SelectItem value="Logística">Logística</SelectItem>
-                      <SelectItem value="Almacén">Almacén</SelectItem>
+                      <SelectItem value="Empleado">Empleado</SelectItem>
+                      <SelectItem value="Gestor">Gestor</SelectItem>
+                      <SelectItem value="Repartidor">Repartidor</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                {formData.rol === "Repartidor" && (
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="zonaCobertura" className="text-right">
-                      Zona
-                    </Label>
-                    <Select
-                      value={formData.zonaCobertura}
-                      onValueChange={(value) => setFormData({ ...formData, zonaCobertura: value })}
-                    >
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Seleccionar zona" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Zona Norte">Zona Norte</SelectItem>
-                        <SelectItem value="Zona Sur">Zona Sur</SelectItem>
-                        <SelectItem value="Zona Este">Zona Este</SelectItem>
-                        <SelectItem value="Zona Oeste">Zona Oeste</SelectItem>
-                        <SelectItem value="Centro">Centro</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+
+                {formData.tipo_empleado === "Gestor" && (
+                  <>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="jerarquía" className="text-right">
+                        Jerarquía
+                      </Label>
+                      <Input
+                        id="jerarquía"
+                        value={formData.jerarquía}
+                        onChange={(e) => setFormData({ ...formData, jerarquía: e.target.value })}
+                        className="col-span-3"
+                        placeholder="ej. Supervisor, Director"
+                        required
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="area_gestion" className="text-right">
+                        Área Gestión
+                      </Label>
+                      <Select
+                        value={formData.area_gestion}
+                        onValueChange={(value) => setFormData({ ...formData, area_gestion: value })}
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Seleccionar área" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Administración">Administración</SelectItem>
+                          <SelectItem value="Ventas">Ventas</SelectItem>
+                          <SelectItem value="Logística">Logística</SelectItem>
+                          <SelectItem value="Almacén">Almacén</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
                 )}
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="jerarquia" className="text-right">
-                    Jerarquía
-                  </Label>
-                  <Input
-                    id="jerarquia"
-                    value={formData.jerarquia}
-                    onChange={(e) => setFormData({ ...formData, jerarquia: e.target.value })}
-                    className="col-span-3"
-                    placeholder="ej. Supervisor, Senior, Junior"
-                    required
-                  />
-                </div>
+
+                {formData.tipo_empleado === "Repartidor" && (
+                  <>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="tipo_vehiculo" className="text-right">
+                        Vehículo
+                      </Label>
+                      <Select
+                        value={formData.tipo_vehiculo}
+                        onValueChange={(value) => setFormData({ ...formData, tipo_vehiculo: value })}
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Seleccionar vehículo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Motocicleta">Motocicleta</SelectItem>
+                          <SelectItem value="Bicicleta">Bicicleta</SelectItem>
+                          <SelectItem value="Automóvil">Automóvil</SelectItem>
+                          <SelectItem value="Camión">Camión</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="zonas_cobertura" className="text-right">
+                        Zona Cobertura
+                      </Label>
+                      <Select
+                        value={formData.zonas_cobertura}
+                        onValueChange={(value) => setFormData({ ...formData, zonas_cobertura: value })}
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Seleccionar zona" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Zona Norte">Zona Norte</SelectItem>
+                          <SelectItem value="Zona Sur">Zona Sur</SelectItem>
+                          <SelectItem value="Zona Este">Zona Este</SelectItem>
+                          <SelectItem value="Zona Oeste">Zona Oeste</SelectItem>
+                          <SelectItem value="Centro">Centro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
               </div>
               <DialogFooter>
                 <Button type="submit">{editingEmpleado ? "Actualizar" : "Agregar"} Empleado</Button>
@@ -354,12 +360,10 @@ export default function EmpleadosPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Administradores</CardTitle>
+            <CardTitle className="text-sm font-medium">Gestores</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {empleados.filter((e) => e.rol === "Administrador").length}
-            </div>
+            <div className="text-2xl font-bold text-blue-600">{gestores.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -367,18 +371,16 @@ export default function EmpleadosPage() {
             <CardTitle className="text-sm font-medium">Repartidores</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              {empleados.filter((e) => e.rol === "Repartidor").length}
-            </div>
+            <div className="text-2xl font-bold text-orange-600">{repartidores.length}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Activos</CardTitle>
+            <CardTitle className="text-sm font-medium">Zonas Cubiertas</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {empleados.filter((e) => e.estado === "Activo").length}
+              {new Set(zonasCobertura.map((z) => z.zonas_cobertura)).size}
             </div>
           </CardContent>
         </Card>
@@ -392,7 +394,7 @@ export default function EmpleadosPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Buscar empleados..."
+                  placeholder="Buscar empleados por nombre o carnet..."
                   className="pl-10"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -417,69 +419,63 @@ export default function EmpleadosPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Empleado</TableHead>
-                <TableHead>Rol</TableHead>
-                <TableHead>Departamento</TableHead>
-                <TableHead>Jerarquía/Zona</TableHead>
-                <TableHead>Contacto</TableHead>
-                <TableHead>Estado</TableHead>
+                <TableHead>Carnet</TableHead>
+                <TableHead>Nombre Empleado</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Jerarquía/Área</TableHead>
+                <TableHead>Zona/Vehículo</TableHead>
                 <TableHead>Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredEmpleados.map((empleado) => (
-                <TableRow key={empleado.id}>
-                  <TableCell className="font-medium">
+                <TableRow key={empleado.carnet_empleado}>
+                  <TableCell className="font-medium">{empleado.carnet_empleado}</TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-8 h-8 ${getRolColor(empleado.rol)} rounded-full flex items-center justify-center`}
+                        className={`w-8 h-8 ${getRolColor(getTipoEmpleado(empleado))} rounded-full flex items-center justify-center`}
                       >
                         <User className="h-4 w-4 text-white" />
                       </div>
+                      {empleado.nombre_emp}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{getTipoEmpleado(empleado)}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {empleado.gestor && (
                       <div>
-                        <p className="font-medium">{empleado.nombre}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Desde: {new Date(empleado.fechaIngreso).toLocaleDateString()}
-                        </p>
+                        <p className="font-medium">{empleado.gestor.jerarquía}</p>
+                        <p className="text-sm text-muted-foreground">{empleado.gestor.area_gestion}</p>
                       </div>
-                    </div>
+                    )}
+                    {!empleado.gestor && !empleado.repartidor && <span className="text-muted-foreground">-</span>}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{empleado.rol}</Badge>
-                  </TableCell>
-                  <TableCell>{empleado.departamento}</TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{empleado.jerarquia}</p>
-                      {empleado.zonaCobertura && (
-                        <div className="flex items-center gap-1 mt-1">
-                          <MapPin className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">{empleado.zonaCobertura}</span>
+                    {empleado.repartidor && (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1">
+                          <Car className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-sm">{empleado.repartidor.tipo_vehiculo}</span>
                         </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{empleado.email}</span>
+                        {empleado.zonas_cobertura?.map((zona, index) => (
+                          <div key={index} className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-sm">{zona.zonas_cobertura}</span>
+                          </div>
+                        ))}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{empleado.telefono}</span>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getEstadoBadgeVariant(empleado.estado)}>{empleado.estado}</Badge>
+                    )}
+                    {!empleado.repartidor && <span className="text-muted-foreground">-</span>}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" onClick={() => handleEdit(empleado)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDelete(empleado.id)}>
+                      <Button variant="outline" size="sm" onClick={() => handleDelete(empleado.carnet_empleado)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>

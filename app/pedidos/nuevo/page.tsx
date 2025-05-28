@@ -9,58 +9,34 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Minus, ShoppingCart, ArrowLeft } from "lucide-react"
 import Link from "next/link"
-
-interface Cliente {
-  id: string
-  nombre: string
-  email: string
-}
-
-interface Producto {
-  id: string
-  nombre: string
-  precio: number
-  stock: number
-}
+import type { Producto, Pedido, Producto_has_Pedido } from "@/types/database"
+import { clientes, productos } from "@/data/mockData"
 
 interface ItemPedido {
   producto: Producto
   cantidad: number
-  subtotal: number
+  importe_total: number
 }
 
 export default function NuevoPedidoPage() {
-  const [clientes] = useState<Cliente[]>([
-    { id: "1", nombre: "María García", email: "maria.garcia@email.com" },
-    { id: "2", nombre: "Juan Pérez", email: "juan.perez@email.com" },
-    { id: "3", nombre: "Ana López", email: "ana.lopez@email.com" },
-  ])
-
-  const [productos] = useState<Producto[]>([
-    { id: "1", nombre: "Laptop HP Pavilion", precio: 899.99, stock: 5 },
-    { id: "2", nombre: "Mouse Logitech MX", precio: 79.99, stock: 25 },
-    { id: "3", nombre: "Teclado Mecánico", precio: 129.99, stock: 15 },
-    { id: "4", nombre: "Monitor 4K Samsung", precio: 299.99, stock: 12 },
-  ])
-
   const [clienteSeleccionado, setClienteSeleccionado] = useState("")
   const [productoSeleccionado, setProductoSeleccionado] = useState("")
   const [cantidad, setCantidad] = useState(1)
   const [items, setItems] = useState<ItemPedido[]>([])
 
   const agregarItem = () => {
-    const producto = productos.find((p) => p.id === productoSeleccionado)
-    if (!producto || cantidad <= 0 || cantidad > producto.stock) return
+    const producto = productos.find((p) => p.codigo.toString() === productoSeleccionado)
+    if (!producto || cantidad <= 0 || cantidad > producto.cant_stock) return
 
-    const itemExistente = items.find((item) => item.producto.id === producto.id)
+    const itemExistente = items.find((item) => item.producto.codigo === producto.codigo)
 
     if (itemExistente) {
       const nuevaCantidad = itemExistente.cantidad + cantidad
-      if (nuevaCantidad <= producto.stock) {
+      if (nuevaCantidad <= producto.cant_stock) {
         setItems(
           items.map((item) =>
-            item.producto.id === producto.id
-              ? { ...item, cantidad: nuevaCantidad, subtotal: nuevaCantidad * producto.precio }
+            item.producto.codigo === producto.codigo
+              ? { ...item, cantidad: nuevaCantidad, importe_total: nuevaCantidad * producto.precio }
               : item,
           ),
         )
@@ -71,7 +47,7 @@ export default function NuevoPedidoPage() {
         {
           producto,
           cantidad,
-          subtotal: cantidad * producto.precio,
+          importe_total: cantidad * producto.precio,
         },
       ])
     }
@@ -80,31 +56,52 @@ export default function NuevoPedidoPage() {
     setCantidad(1)
   }
 
-  const actualizarCantidad = (productoId: string, nuevaCantidad: number) => {
-    const producto = productos.find((p) => p.id === productoId)
-    if (!producto || nuevaCantidad <= 0 || nuevaCantidad > producto.stock) return
+  const actualizarCantidad = (productoCodigo: number, nuevaCantidad: number) => {
+    const producto = productos.find((p) => p.codigo === productoCodigo)
+    if (!producto || nuevaCantidad <= 0 || nuevaCantidad > producto.cant_stock) return
 
     setItems(
       items.map((item) =>
-        item.producto.id === productoId
-          ? { ...item, cantidad: nuevaCantidad, subtotal: nuevaCantidad * producto.precio }
+        item.producto.codigo === productoCodigo
+          ? { ...item, cantidad: nuevaCantidad, importe_total: nuevaCantidad * producto.precio }
           : item,
       ),
     )
   }
 
-  const eliminarItem = (productoId: string) => {
-    setItems(items.filter((item) => item.producto.id !== productoId))
+  const eliminarItem = (productoCodigo: number) => {
+    setItems(items.filter((item) => item.producto.codigo !== productoCodigo))
   }
 
-  const total = items.reduce((sum, item) => sum + item.subtotal, 0)
+  const totalProductos = items.reduce((sum, item) => sum + item.cantidad, 0)
+  const totalImporte = items.reduce((sum, item) => sum + item.importe_total, 0)
 
   const procesarPedido = () => {
     if (!clienteSeleccionado || items.length === 0) return
 
-    // Aquí se procesaría el pedido
+    const cliente = clientes.find((c) => c.id_cliente.toString() === clienteSeleccionado)
+
+    // Crear el pedido según el esquema ER
+    const nuevoPedido: Pedido = {
+      id_pedido: Date.now(), // En producción sería generado por la BD
+      fecha: new Date().toISOString().split("T")[0],
+      total_prod: totalProductos,
+      Cliente_id_cliente: Number.parseInt(clienteSeleccionado),
+    }
+
+    // Crear las relaciones Producto_has_Pedido
+    const productosDelPedido: Producto_has_Pedido[] = items.map((item) => ({
+      Producto_codigo: item.producto.codigo,
+      Pedido_id_pedido: nuevoPedido.id_pedido,
+      importe_total: Math.round(item.importe_total), // Convertir a INTEGER según esquema
+    }))
+
     alert(
-      `Pedido creado exitosamente!\nCliente: ${clientes.find((c) => c.id === clienteSeleccionado)?.nombre}\nTotal: $${total.toFixed(2)}`,
+      `Pedido creado exitosamente!\n` +
+        `ID Pedido: ${nuevoPedido.id_pedido}\n` +
+        `Cliente: ${cliente?.nombre_cliente}\n` +
+        `Total Productos: ${totalProductos}\n` +
+        `Importe Total: $${totalImporte.toFixed(2)}`,
     )
 
     // Limpiar formulario
@@ -143,8 +140,8 @@ export default function NuevoPedidoPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {clientes.map((cliente) => (
-                    <SelectItem key={cliente.id} value={cliente.id}>
-                      {cliente.nombre} - {cliente.email}
+                    <SelectItem key={cliente.id_cliente} value={cliente.id_cliente.toString()}>
+                      {cliente.id_cliente} - {cliente.nombre_cliente} ({cliente.email_cliente})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -168,8 +165,9 @@ export default function NuevoPedidoPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {productos.map((producto) => (
-                    <SelectItem key={producto.id} value={producto.id}>
-                      {producto.nombre} - ${producto.precio.toFixed(2)} (Stock: {producto.stock})
+                    <SelectItem key={producto.codigo} value={producto.codigo.toString()}>
+                      {producto.codigo} - {producto.nombre_prod} - ${producto.precio.toFixed(2)} (Stock:{" "}
+                      {producto.cant_stock})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -206,24 +204,26 @@ export default function NuevoPedidoPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Código</TableHead>
                   <TableHead>Producto</TableHead>
                   <TableHead>Precio Unitario</TableHead>
                   <TableHead>Cantidad</TableHead>
-                  <TableHead>Subtotal</TableHead>
+                  <TableHead>Importe Total</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.producto.id}>
-                    <TableCell className="font-medium">{item.producto.nombre}</TableCell>
+                  <TableRow key={item.producto.codigo}>
+                    <TableCell className="font-medium">{item.producto.codigo}</TableCell>
+                    <TableCell>{item.producto.nombre_prod}</TableCell>
                     <TableCell>${item.producto.precio.toFixed(2)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => actualizarCantidad(item.producto.id, item.cantidad - 1)}
+                          onClick={() => actualizarCantidad(item.producto.codigo, item.cantidad - 1)}
                           disabled={item.cantidad <= 1}
                         >
                           <Minus className="h-4 w-4" />
@@ -232,16 +232,16 @@ export default function NuevoPedidoPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => actualizarCantidad(item.producto.id, item.cantidad + 1)}
-                          disabled={item.cantidad >= item.producto.stock}
+                          onClick={() => actualizarCantidad(item.producto.codigo, item.cantidad + 1)}
+                          disabled={item.cantidad >= item.producto.cant_stock}
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
-                    <TableCell>${item.subtotal.toFixed(2)}</TableCell>
+                    <TableCell>${item.importe_total.toFixed(2)}</TableCell>
                     <TableCell>
-                      <Button variant="outline" size="sm" onClick={() => eliminarItem(item.producto.id)}>
+                      <Button variant="outline" size="sm" onClick={() => eliminarItem(item.producto.codigo)}>
                         Eliminar
                       </Button>
                     </TableCell>
@@ -262,16 +262,20 @@ export default function NuevoPedidoPage() {
           <CardContent>
             <div className="space-y-2">
               <div className="flex justify-between text-lg">
+                <span>Total Productos:</span>
+                <span>{totalProductos} unidades</span>
+              </div>
+              <div className="flex justify-between text-lg">
                 <span>Subtotal:</span>
-                <span>${total.toFixed(2)}</span>
+                <span>${totalImporte.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-lg">
                 <span>IVA (16%):</span>
-                <span>${(total * 0.16).toFixed(2)}</span>
+                <span>${(totalImporte * 0.16).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-xl font-bold border-t pt-2">
-                <span>Total:</span>
-                <span>${(total * 1.16).toFixed(2)}</span>
+                <span>Total Final:</span>
+                <span>${(totalImporte * 1.16).toFixed(2)}</span>
               </div>
             </div>
             <Button

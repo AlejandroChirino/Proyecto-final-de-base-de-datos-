@@ -1,11 +1,9 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
@@ -18,96 +16,62 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Plus, Search, Filter, Mail, Phone, Edit, Trash2, MapPin } from "lucide-react"
-
-interface Cliente {
-  id: string
-  nombre: string
-  email: string
-  telefono: string
-  direccion: string
-  pedidos: number
-  totalGastado: number
-  estado: "Activo" | "Inactivo"
-  fechaRegistro: string
-}
+import type { Cliente } from "@/types/database"
+import { clientes as clientesIniciales } from "@/data/mockData"
 
 export default function ClientesPage() {
-  const [clientes, setClientes] = useState<Cliente[]>([
-    {
-      id: "1",
-      nombre: "María García",
-      email: "maria.garcia@email.com",
-      telefono: "+1 234 567 8901",
-      direccion: "Av. Principal 123, Ciudad",
-      pedidos: 12,
-      totalGastado: 1250.0,
-      estado: "Activo",
-      fechaRegistro: "2023-06-15",
-    },
-    {
-      id: "2",
-      nombre: "Juan Pérez",
-      email: "juan.perez@email.com",
-      telefono: "+1 234 567 8902",
-      direccion: "Calle Secundaria 456, Ciudad",
-      pedidos: 8,
-      totalGastado: 890.5,
-      estado: "Activo",
-      fechaRegistro: "2023-08-22",
-    },
-    {
-      id: "3",
-      nombre: "Ana López",
-      email: "ana.lopez@email.com",
-      telefono: "+1 234 567 8903",
-      direccion: "Plaza Central 789, Ciudad",
-      pedidos: 3,
-      totalGastado: 320.0,
-      estado: "Inactivo",
-      fechaRegistro: "2023-12-10",
-    },
-  ])
-
+  const [clientes, setClientes] = useState<Cliente[]>(clientesIniciales)
   const [searchTerm, setSearchTerm] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null)
   const [formData, setFormData] = useState({
-    nombre: "",
-    email: "",
+    id_cliente: "",
+    nombre_cliente: "",
+    "direccion-num_casa": "",
+    "direccion-calle": "",
+    "direccion-municipio": "",
+    "direccion-provincia": "",
     telefono: "",
-    direccion: "",
+    email_cliente: "",
   })
 
   const filteredClientes = clientes.filter(
     (cliente) =>
-      cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cliente.email.toLowerCase().includes(searchTerm.toLowerCase()),
+      cliente.nombre_cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cliente.email_cliente.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
     const nuevoCliente: Cliente = {
-      id: editingCliente?.id || Date.now().toString(),
-      nombre: formData.nombre,
-      email: formData.email,
-      telefono: formData.telefono,
-      direccion: formData.direccion,
-      pedidos: editingCliente?.pedidos || 0,
-      totalGastado: editingCliente?.totalGastado || 0,
-      estado: "Activo",
-      fechaRegistro: editingCliente?.fechaRegistro || new Date().toISOString().split("T")[0],
+      id_cliente: editingCliente?.id_cliente || Number.parseInt(formData.id_cliente),
+      nombre_cliente: formData.nombre_cliente,
+      "direccion-num_casa": Number.parseInt(formData["direccion-num_casa"]),
+      "direccion-calle": formData["direccion-calle"],
+      "direccion-municipio": formData["direccion-municipio"],
+      "direccion-provincia": formData["direccion-provincia"],
+      telefono: Number.parseInt(formData.telefono),
+      email_cliente: formData.email_cliente,
     }
 
     if (editingCliente) {
-      setClientes(clientes.map((c) => (c.id === editingCliente.id ? nuevoCliente : c)))
+      setClientes(clientes.map((c) => (c.id_cliente === editingCliente.id_cliente ? nuevoCliente : c)))
     } else {
       setClientes([...clientes, nuevoCliente])
     }
 
-    setFormData({ nombre: "", email: "", telefono: "", direccion: "" })
+    setFormData({
+      id_cliente: "",
+      nombre_cliente: "",
+      "direccion-num_casa": "",
+      "direccion-calle": "",
+      "direccion-municipio": "",
+      "direccion-provincia": "",
+      telefono: "",
+      email_cliente: "",
+    })
     setEditingCliente(null)
     setIsDialogOpen(false)
   }
@@ -115,16 +79,24 @@ export default function ClientesPage() {
   const handleEdit = (cliente: Cliente) => {
     setEditingCliente(cliente)
     setFormData({
-      nombre: cliente.nombre,
-      email: cliente.email,
-      telefono: cliente.telefono,
-      direccion: cliente.direccion,
+      id_cliente: cliente.id_cliente.toString(),
+      nombre_cliente: cliente.nombre_cliente,
+      "direccion-num_casa": cliente["direccion-num_casa"].toString(),
+      "direccion-calle": cliente["direccion-calle"],
+      "direccion-municipio": cliente["direccion-municipio"],
+      "direccion-provincia": cliente["direccion-provincia"],
+      telefono: cliente.telefono.toString(),
+      email_cliente: cliente.email_cliente,
     })
     setIsDialogOpen(true)
   }
 
-  const handleDelete = (id: string) => {
-    setClientes(clientes.filter((c) => c.id !== id))
+  const handleDelete = (id_cliente: number) => {
+    setClientes(clientes.filter((c) => c.id_cliente !== id_cliente))
+  }
+
+  const getDireccionCompleta = (cliente: Cliente) => {
+    return `${cliente["direccion-calle"]} #${cliente["direccion-num_casa"]}, ${cliente["direccion-municipio"]}, ${cliente["direccion-provincia"]}`
   }
 
   return (
@@ -139,14 +111,23 @@ export default function ClientesPage() {
             <Button
               onClick={() => {
                 setEditingCliente(null)
-                setFormData({ nombre: "", email: "", telefono: "", direccion: "" })
+                setFormData({
+                  id_cliente: "",
+                  nombre_cliente: "",
+                  "direccion-num_casa": "",
+                  "direccion-calle": "",
+                  "direccion-municipio": "",
+                  "direccion-provincia": "",
+                  telefono: "",
+                  email_cliente: "",
+                })
               }}
             >
               <Plus className="mr-2 h-4 w-4" />
               Agregar Cliente
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>{editingCliente ? "Editar Cliente" : "Agregar Nuevo Cliente"}</DialogTitle>
               <DialogDescription>
@@ -154,28 +135,78 @@ export default function ClientesPage() {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit}>
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-4 py-4 max-h-96 overflow-y-auto">
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="nombre" className="text-right">
+                  <Label htmlFor="id_cliente" className="text-right">
+                    ID Cliente
+                  </Label>
+                  <Input
+                    id="id_cliente"
+                    type="number"
+                    value={formData.id_cliente}
+                    onChange={(e) => setFormData({ ...formData, id_cliente: e.target.value })}
+                    className="col-span-3"
+                    disabled={!!editingCliente}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="nombre_cliente" className="text-right">
                     Nombre
                   </Label>
                   <Input
-                    id="nombre"
-                    value={formData.nombre}
-                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                    id="nombre_cliente"
+                    value={formData.nombre_cliente}
+                    onChange={(e) => setFormData({ ...formData, nombre_cliente: e.target.value })}
                     className="col-span-3"
                     required
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="email" className="text-right">
-                    Email
+                  <Label htmlFor="direccion-calle" className="text-right">
+                    Calle
                   </Label>
                   <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    id="direccion-calle"
+                    value={formData["direccion-calle"]}
+                    onChange={(e) => setFormData({ ...formData, "direccion-calle": e.target.value })}
+                    className="col-span-3"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="direccion-num_casa" className="text-right">
+                    Número
+                  </Label>
+                  <Input
+                    id="direccion-num_casa"
+                    type="number"
+                    value={formData["direccion-num_casa"]}
+                    onChange={(e) => setFormData({ ...formData, "direccion-num_casa": e.target.value })}
+                    className="col-span-3"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="direccion-municipio" className="text-right">
+                    Municipio
+                  </Label>
+                  <Input
+                    id="direccion-municipio"
+                    value={formData["direccion-municipio"]}
+                    onChange={(e) => setFormData({ ...formData, "direccion-municipio": e.target.value })}
+                    className="col-span-3"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="direccion-provincia" className="text-right">
+                    Provincia
+                  </Label>
+                  <Input
+                    id="direccion-provincia"
+                    value={formData["direccion-provincia"]}
+                    onChange={(e) => setFormData({ ...formData, "direccion-provincia": e.target.value })}
                     className="col-span-3"
                     required
                   />
@@ -186,6 +217,7 @@ export default function ClientesPage() {
                   </Label>
                   <Input
                     id="telefono"
+                    type="number"
                     value={formData.telefono}
                     onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
                     className="col-span-3"
@@ -193,13 +225,14 @@ export default function ClientesPage() {
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="direccion" className="text-right">
-                    Dirección
+                  <Label htmlFor="email_cliente" className="text-right">
+                    Email
                   </Label>
-                  <Textarea
-                    id="direccion"
-                    value={formData.direccion}
-                    onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
+                  <Input
+                    id="email_cliente"
+                    type="email"
+                    value={formData.email_cliente}
+                    onChange={(e) => setFormData({ ...formData, email_cliente: e.target.value })}
                     className="col-span-3"
                     required
                   />
@@ -214,47 +247,33 @@ export default function ClientesPage() {
       </div>
 
       {/* Estadísticas de clientes */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Total Clientes</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{clientes.length}</div>
-            <p className="text-xs text-muted-foreground">+19% este mes</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Clientes Activos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {clientes.filter((c) => c.estado === "Activo").length}
-            </div>
-            <p className="text-xs text-muted-foreground">Últimos 30 días</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Promedio de Pedidos</CardTitle>
+            <CardTitle className="text-sm font-medium">Provincias</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {(clientes.reduce((sum, c) => sum + c.pedidos, 0) / clientes.length).toFixed(1)}
+              {new Set(clientes.map((c) => c["direccion-provincia"])).size}
             </div>
-            <p className="text-xs text-muted-foreground">Por cliente</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Valor Promedio</CardTitle>
+            <CardTitle className="text-sm font-medium">Municipios</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
-              ${(clientes.reduce((sum, c) => sum + c.totalGastado, 0) / clientes.length).toFixed(0)}
+            <div className="text-2xl font-bold text-green-600">
+              {new Set(clientes.map((c) => c["direccion-municipio"])).size}
             </div>
-            <p className="text-xs text-muted-foreground">Por cliente</p>
           </CardContent>
         </Card>
       </div>
@@ -267,7 +286,7 @@ export default function ClientesPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Buscar clientes..."
+                  placeholder="Buscar clientes por nombre o email..."
                   className="pl-10"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -292,31 +311,23 @@ export default function ClientesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Cliente</TableHead>
+                <TableHead>ID</TableHead>
+                <TableHead>Nombre Cliente</TableHead>
                 <TableHead>Contacto</TableHead>
                 <TableHead>Dirección</TableHead>
-                <TableHead>Pedidos</TableHead>
-                <TableHead>Total Gastado</TableHead>
-                <TableHead>Estado</TableHead>
                 <TableHead>Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredClientes.map((cliente) => (
-                <TableRow key={cliente.id}>
-                  <TableCell className="font-medium">
-                    <div>
-                      <p className="font-medium">{cliente.nombre}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Registrado: {new Date(cliente.fechaRegistro).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </TableCell>
+                <TableRow key={cliente.id_cliente}>
+                  <TableCell className="font-medium">{cliente.id_cliente}</TableCell>
+                  <TableCell>{cliente.nombre_cliente}</TableCell>
                   <TableCell>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <Mail className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{cliente.email}</span>
+                        <span className="text-sm">{cliente.email_cliente}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Phone className="h-4 w-4 text-muted-foreground" />
@@ -325,22 +336,17 @@ export default function ClientesPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{cliente.direccion}</span>
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <span className="text-sm">{getDireccionCompleta(cliente)}</span>
                     </div>
-                  </TableCell>
-                  <TableCell>{cliente.pedidos}</TableCell>
-                  <TableCell>${cliente.totalGastado.toFixed(2)}</TableCell>
-                  <TableCell>
-                    <Badge variant={cliente.estado === "Activo" ? "default" : "secondary"}>{cliente.estado}</Badge>
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" onClick={() => handleEdit(cliente)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDelete(cliente.id)}>
+                      <Button variant="outline" size="sm" onClick={() => handleDelete(cliente.id_cliente)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>

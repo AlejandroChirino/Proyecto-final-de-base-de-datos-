@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -18,119 +17,32 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Search, Filter, Edit, Trash2 } from "lucide-react"
-
-interface Product {
-  id: string
-  nombre: string
-  codigo: string
-  categoria: string
-  precio: number
-  stock: number
-  estado: "En Stock" | "Stock Bajo" | "Agotado"
-}
+import type { Producto } from "@/types/database"
+import { productos as productosIniciales } from "@/data/mockData"
 
 export default function InventarioPage() {
-  const [products, setProducts] = useState<Product[]>([
-    {
-      id: "1",
-      nombre: "Laptop HP Pavilion",
-      codigo: "HP-PAV-001",
-      categoria: "Electrónicos",
-      precio: 899.99,
-      stock: 5,
-      estado: "Stock Bajo",
-    },
-    {
-      id: "2",
-      nombre: "Mouse Logitech MX",
-      codigo: "LOG-MX-002",
-      categoria: "Accesorios",
-      precio: 79.99,
-      stock: 25,
-      estado: "En Stock",
-    },
-    {
-      id: "3",
-      nombre: "Teclado Mecánico",
-      codigo: "KEY-MEC-003",
-      categoria: "Accesorios",
-      precio: 129.99,
-      stock: 0,
-      estado: "Agotado",
-    },
-    {
-      id: "4",
-      nombre: "Monitor 4K Samsung",
-      codigo: "SAM-4K-004",
-      categoria: "Electrónicos",
-      precio: 299.99,
-      stock: 12,
-      estado: "En Stock",
-    },
-  ])
-
+  const [productos, setProductos] = useState<Producto[]>(productosIniciales)
   const [searchTerm, setSearchTerm] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [editingProducto, setEditingProducto] = useState<Producto | null>(null)
   const [formData, setFormData] = useState({
-    nombre: "",
     codigo: "",
-    categoria: "",
+    nombre_prod: "",
     precio: "",
-    stock: "",
+    cant_stock: "",
   })
 
-  const filteredProducts = products.filter(
-    (product) =>
-      product.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.codigo.toLowerCase().includes(searchTerm.toLowerCase()),
+  const filteredProductos = productos.filter(
+    (producto) =>
+      producto.nombre_prod.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      producto.codigo.toString().includes(searchTerm),
   )
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-
-    const newProduct: Product = {
-      id: editingProduct?.id || Date.now().toString(),
-      nombre: formData.nombre,
-      codigo: formData.codigo,
-      categoria: formData.categoria,
-      precio: Number.parseFloat(formData.precio),
-      stock: Number.parseInt(formData.stock),
-      estado:
-        Number.parseInt(formData.stock) === 0
-          ? "Agotado"
-          : Number.parseInt(formData.stock) < 10
-            ? "Stock Bajo"
-            : "En Stock",
-    }
-
-    if (editingProduct) {
-      setProducts(products.map((p) => (p.id === editingProduct.id ? newProduct : p)))
-    } else {
-      setProducts([...products, newProduct])
-    }
-
-    setFormData({ nombre: "", codigo: "", categoria: "", precio: "", stock: "" })
-    setEditingProduct(null)
-    setIsDialogOpen(false)
-  }
-
-  const handleEdit = (product: Product) => {
-    setEditingProduct(product)
-    setFormData({
-      nombre: product.nombre,
-      codigo: product.codigo,
-      categoria: product.categoria,
-      precio: product.precio.toString(),
-      stock: product.stock.toString(),
-    })
-    setIsDialogOpen(true)
-  }
-
-  const handleDelete = (id: string) => {
-    setProducts(products.filter((p) => p.id !== id))
+  const getEstadoStock = (cantStock: number): string => {
+    if (cantStock === 0) return "Agotado"
+    if (cantStock < 10) return "Stock Bajo"
+    return "En Stock"
   }
 
   const getStockBadgeVariant = (estado: string) => {
@@ -146,6 +58,42 @@ export default function InventarioPage() {
     }
   }
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+
+    const nuevoProducto: Producto = {
+      codigo: editingProducto?.codigo || Number.parseInt(formData.codigo),
+      nombre_prod: formData.nombre_prod,
+      precio: Number.parseFloat(formData.precio),
+      cant_stock: Number.parseInt(formData.cant_stock),
+    }
+
+    if (editingProducto) {
+      setProductos(productos.map((p) => (p.codigo === editingProducto.codigo ? nuevoProducto : p)))
+    } else {
+      setProductos([...productos, nuevoProducto])
+    }
+
+    setFormData({ codigo: "", nombre_prod: "", precio: "", cant_stock: "" })
+    setEditingProducto(null)
+    setIsDialogOpen(false)
+  }
+
+  const handleEdit = (producto: Producto) => {
+    setEditingProducto(producto)
+    setFormData({
+      codigo: producto.codigo.toString(),
+      nombre_prod: producto.nombre_prod,
+      precio: producto.precio.toString(),
+      cant_stock: producto.cant_stock.toString(),
+    })
+    setIsDialogOpen(true)
+  }
+
+  const handleDelete = (codigo: number) => {
+    setProductos(productos.filter((p) => p.codigo !== codigo))
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -157,8 +105,8 @@ export default function InventarioPage() {
           <DialogTrigger asChild>
             <Button
               onClick={() => {
-                setEditingProduct(null)
-                setFormData({ nombre: "", codigo: "", categoria: "", precio: "", stock: "" })
+                setEditingProducto(null)
+                setFormData({ codigo: "", nombre_prod: "", precio: "", cant_stock: "" })
               }}
             >
               <Plus className="mr-2 h-4 w-4" />
@@ -167,9 +115,9 @@ export default function InventarioPage() {
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>{editingProduct ? "Editar Producto" : "Agregar Nuevo Producto"}</DialogTitle>
+              <DialogTitle>{editingProducto ? "Editar Producto" : "Agregar Nuevo Producto"}</DialogTitle>
               <DialogDescription>
-                {editingProduct
+                {editingProducto
                   ? "Modifica la información del producto."
                   : "Completa la información del nuevo producto."}
               </DialogDescription>
@@ -177,47 +125,30 @@ export default function InventarioPage() {
             <form onSubmit={handleSubmit}>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="nombre" className="text-right">
-                    Nombre
-                  </Label>
-                  <Input
-                    id="nombre"
-                    value={formData.nombre}
-                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                    className="col-span-3"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="codigo" className="text-right">
                     Código
                   </Label>
                   <Input
                     id="codigo"
+                    type="number"
                     value={formData.codigo}
                     onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
                     className="col-span-3"
+                    disabled={!!editingProducto}
                     required
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="categoria" className="text-right">
-                    Categoría
+                  <Label htmlFor="nombre_prod" className="text-right">
+                    Nombre
                   </Label>
-                  <Select
-                    value={formData.categoria}
-                    onValueChange={(value) => setFormData({ ...formData, categoria: value })}
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Seleccionar categoría" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Electrónicos">Electrónicos</SelectItem>
-                      <SelectItem value="Accesorios">Accesorios</SelectItem>
-                      <SelectItem value="Oficina">Oficina</SelectItem>
-                      <SelectItem value="Hogar">Hogar</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    id="nombre_prod"
+                    value={formData.nombre_prod}
+                    onChange={(e) => setFormData({ ...formData, nombre_prod: e.target.value })}
+                    className="col-span-3"
+                    required
+                  />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="precio" className="text-right">
@@ -234,21 +165,21 @@ export default function InventarioPage() {
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="stock" className="text-right">
+                  <Label htmlFor="cant_stock" className="text-right">
                     Stock
                   </Label>
                   <Input
-                    id="stock"
+                    id="cant_stock"
                     type="number"
-                    value={formData.stock}
-                    onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                    value={formData.cant_stock}
+                    onChange={(e) => setFormData({ ...formData, cant_stock: e.target.value })}
                     className="col-span-3"
                     required
                   />
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit">{editingProduct ? "Actualizar" : "Agregar"} Producto</Button>
+                <Button type="submit">{editingProducto ? "Actualizar" : "Agregar"} Producto</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -262,7 +193,7 @@ export default function InventarioPage() {
             <CardTitle className="text-sm font-medium">Total Productos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{products.length}</div>
+            <div className="text-2xl font-bold">{productos.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -271,7 +202,7 @@ export default function InventarioPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {products.filter((p) => p.estado === "En Stock").length}
+              {productos.filter((p) => getEstadoStock(p.cant_stock) === "En Stock").length}
             </div>
           </CardContent>
         </Card>
@@ -281,7 +212,7 @@ export default function InventarioPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">
-              {products.filter((p) => p.estado === "Stock Bajo").length}
+              {productos.filter((p) => getEstadoStock(p.cant_stock) === "Stock Bajo").length}
             </div>
           </CardContent>
         </Card>
@@ -291,7 +222,7 @@ export default function InventarioPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {products.filter((p) => p.estado === "Agotado").length}
+              {productos.filter((p) => getEstadoStock(p.cant_stock) === "Agotado").length}
             </div>
           </CardContent>
         </Card>
@@ -305,7 +236,7 @@ export default function InventarioPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Buscar productos..."
+                  placeholder="Buscar productos por nombre o código..."
                   className="pl-10"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -330,32 +261,32 @@ export default function InventarioPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nombre</TableHead>
                 <TableHead>Código</TableHead>
-                <TableHead>Categoría</TableHead>
+                <TableHead>Nombre Producto</TableHead>
                 <TableHead>Precio</TableHead>
-                <TableHead>Stock</TableHead>
+                <TableHead>Cantidad Stock</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead>Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProducts.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell className="font-medium">{product.nombre}</TableCell>
-                  <TableCell>{product.codigo}</TableCell>
-                  <TableCell>{product.categoria}</TableCell>
-                  <TableCell>${product.precio.toFixed(2)}</TableCell>
-                  <TableCell>{product.stock}</TableCell>
+              {filteredProductos.map((producto) => (
+                <TableRow key={producto.codigo}>
+                  <TableCell className="font-medium">{producto.codigo}</TableCell>
+                  <TableCell>{producto.nombre_prod}</TableCell>
+                  <TableCell>${producto.precio.toFixed(2)}</TableCell>
+                  <TableCell>{producto.cant_stock}</TableCell>
                   <TableCell>
-                    <Badge variant={getStockBadgeVariant(product.estado)}>{product.estado}</Badge>
+                    <Badge variant={getStockBadgeVariant(getEstadoStock(producto.cant_stock))}>
+                      {getEstadoStock(producto.cant_stock)}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleEdit(product)}>
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(producto)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDelete(product.id)}>
+                      <Button variant="outline" size="sm" onClick={() => handleDelete(producto.codigo)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
